@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import Header from "./Header";
 import Main from "./Main";
-import Footer from "./Footer";
 import ImagePopup from "./ImagePopup";
 import api from "../utils/api";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
@@ -9,6 +8,14 @@ import EditProfilePopup from "./EditProfilePopup";
 import EditAvatarPopup from "./EditAvatarPopup";
 import AddPlacePopup from "./AddPlacePopup";
 import ConfirmPopup from "./ConfirmPopup";
+import InfoToolTip from "./InfoTooltip";
+import { Route, useHistory, Switch, Redirect } from 'react-router-dom';
+import Register from "./Register";
+import Login from "./Login";
+import ProtectedRoute from "./ProtectedRoute";
+import auth from '../utils/auth';
+import successfulRegist from '../images/Successful.svg';
+import failedRegist from '../images/Failed.svg';
 
 function App() {
   const [cards, setCards] = useState([]);
@@ -16,10 +23,15 @@ function App() {
   const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = useState(false);
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = useState(false);
   const [isConfirmDeletePopupOpen, setIsConfirmDeletePopupOpen] = useState(false);
+  const [isTooltipPopupOpen, setIsTooltipPopupOpen] = useState(false);
 
   const [selectedCard, setSelectedCard] = useState(null);
   const [cardToDelete, setCardToDelete] = useState()
   const [currentUser, setCurrentUser] = useState(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [messageTooltip, setMessageTooltip] = React.useState({});
+
+  const history = useHistory();
 
   function handleEditProfileClick() {
     setIsEditProfilePopupOpen(true);
@@ -43,6 +55,7 @@ function App() {
     setIsAddPlacePopupOpen(false);
     setIsEditAvatarPopupOpen(false);
     setIsConfirmDeletePopupOpen(false);
+    setIsTooltipPopupOpen(false);
     setSelectedCard(null);
   }
 
@@ -95,32 +108,97 @@ function App() {
       })
       .catch(err => `Не удалось создать карточку, ошибка: ${err}`)
   }
+  function handleSubmitRegistration(data) {
+    auth.registration(data)
+      .then(({ email }) => {
+        setCurrentUser({ ...currentUser, email })
+        history.push('/sign-in')
+        setIsTooltipPopupOpen(true)
+        setMessageTooltip({ message: "Вы успешно зарегистрировались!", img: successfulRegist })
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsTooltipPopupOpen(true)
+        setMessageTooltip({ message: "Что-то пошло не так! Попробуйте еще раз.", img: failedRegist })
 
+      })
+  }
+  function handleSubmitAuthorization(data) {
+    auth.authorization(data)
+      .then(({ token, email }) => {
+        localStorage.setItem('jwt', token)
+        setLoggedIn(true)
+        setCurrentUser({...currentUser, email })
+        history.push('/')
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsTooltipPopupOpen(true)
+        setMessageTooltip({ message: "Что-то пошло не так! Попробуйте еще раз.", img: failedRegist })
+      })
+  }
+
+  // function checkTocken() {
+  //   const jwt = localStorage.getItem('jwt');
+  //   if (jwt) {
+  //     setLoggedIn(true);
+  //     auth.getUser(jwt)
+  //       .then(({ data: { email } }) => {
+  //         setCurrentUser({ ...currentUser, email })
+  //         console.log(currentUser)
+  //       })
+  //       .catch((err)=> console.log(err))
+  //   }
+  // }
+
+  function handleLogout() {
+    localStorage.removeItem('jwt');
+    setLoggedIn(false);
+    history.push('/sign-in');
+  }
 
   React.useEffect(() => {
-    api.getInitialData()
-      .then(([userData, cardsList]) => {
-        setCurrentUser(userData);
-        setCards(cardsList);
-      })
+    // checkTocken();
+    if (loggedIn) {
+      api.getInitialData()
+        .then(([userData, cardsList]) => {
+          setCurrentUser({...currentUser, ...userData});
+          console.log(currentUser)
+          setCards(cardsList);
+       })
       .catch(err => console.log(err));
-  }, []);
+    }
+  }, [loggedIn]);
+
+  
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
         <div className="page__container">
-          <Header />
-          <Main
-            onEditProfile={handleEditProfileClick}
-            onAddPlace={handleAddPlaceClick}
-            onEditAvatar={handleEditAvatarClick}
-            onCardClick={handleCardClick}
-            onConfirmDeleteClick={handleConfirmDeleteClick}
-            onCardLike={handleCardLike}
-            cards={cards}
-          />
-          <Footer />
+          <Header onLogout={handleLogout}/>
+          <Switch>
+            <ProtectedRoute exact path="/"
+              loggedIn={loggedIn}
+              component={Main}
+              onEditProfile={handleEditProfileClick}
+              onAddPlace={handleAddPlaceClick}
+              onEditAvatar={handleEditAvatarClick}
+              onCardClick={handleCardClick}
+              onConfirmDeleteClick={handleConfirmDeleteClick}
+              onCardLike={handleCardLike}
+              cards={cards}
+            />
+          
+            <Route path="/sign-up">
+              {loggedIn ? <Redirect to='/' />
+              : <Register onSubmit={handleSubmitRegistration}/>}
+            </Route> 
+            <Route path="/sign-in">
+              {loggedIn ? <Redirect to='/' />
+              : <Login onSubmit={handleSubmitAuthorization} />}
+            </Route> 
+          </Switch>
         </div>
         <EditProfilePopup 
           isOpen={isEditProfilePopupOpen} 
@@ -143,6 +221,12 @@ function App() {
           onUpdateAvatar={handleUpdateAvatar} 
         />
         <ImagePopup card={selectedCard} onClose={closeAllPopups} 
+        />
+        <InfoToolTip
+          name="infoTooltip"
+          isOpen={isTooltipPopupOpen}
+          messageTooltip={messageTooltip}
+          onClose={closeAllPopups}
         />
       </div>
     </CurrentUserContext.Provider>

@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from './Card';
-import { CurrentUserContext } from '../contexts/CurrentUserContext'
+import { CurrentUserContext } from '../contexts/CurrentUserContext';
+import Footer from './Footer';
 
 function Main({cards, onEditProfile, onEditAvatar, onAddPlace, onConfirmDeleteClick, onCardClick, onCardLike, onCardDelete}) {
   
@@ -33,6 +34,7 @@ function Main({cards, onEditProfile, onEditAvatar, onAddPlace, onConfirmDeleteCl
           />
         ))}
       </section>
+      <Footer />
     </main>
   );
 }
