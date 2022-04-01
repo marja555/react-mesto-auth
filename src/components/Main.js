@@ -13,11 +13,11 @@ function Main({cards, onEditProfile, onEditAvatar, onAddPlace, onConfirmDeleteCl
         <div className="profile__info">
           <div onClick={onEditAvatar} 
           className="profile__image"
-          style={{ backgroundImage: `url(${currentUser.avatar})` }}></div>
+          style={{ backgroundImage: `url(${currentUser?.avatar})` }}></div>
           <div className="profile__info-container">
-            <h1 className="profile__name">{currentUser.name}</h1>
+            <h1 className="profile__name">{currentUser?.name}</h1>
             <button type="button" onClick={onEditProfile} className="profile__edit-button"></button>
-            <p className="profile__profession">{currentUser.about}</p>
+            <p className="profile__profession">{currentUser?.about}</p>
           </div>
         </div>  
         <button type="button" onClick={onAddPlace} className="profile__add-button"></button>

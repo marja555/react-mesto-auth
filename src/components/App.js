@@ -9,7 +9,7 @@ import EditAvatarPopup from "./EditAvatarPopup";
 import AddPlacePopup from "./AddPlacePopup";
 import ConfirmPopup from "./ConfirmPopup";
 import InfoToolTip from "./InfoTooltip";
-import { Route, useHistory, Switch, Redirect } from 'react-router-dom';
+import { Route, useHistory, Switch } from 'react-router-dom';
 import Register from "./Register";
 import Login from "./Login";
 import ProtectedRoute from "./ProtectedRoute";
@@ -24,12 +24,12 @@ function App() {
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = useState(false);
   const [isConfirmDeletePopupOpen, setIsConfirmDeletePopupOpen] = useState(false);
   const [isTooltipPopupOpen, setIsTooltipPopupOpen] = useState(false);
-
   const [selectedCard, setSelectedCard] = useState(null);
-  const [cardToDelete, setCardToDelete] = useState()
-  const [currentUser, setCurrentUser] = useState({});
+  const [cardToDelete, setCardToDelete] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [messageTooltip, setMessageTooltip] = React.useState({});
+  const [email, setEmail] = useState('');
 
   const history = useHistory();
 
@@ -66,7 +66,7 @@ function App() {
   function handleUpdateUser(currentUser) {
     api.setUserInfo({name: currentUser.name, job: currentUser.about})
       .then((userData) => {
-        setCurrentUser({...currentUser, ...userData});
+        setCurrentUser(userData)
       })
       .catch(err => `Не удалось обновить данные пользователя, ошибка: ${err}`)
   }
@@ -74,7 +74,7 @@ function App() {
   function handleUpdateAvatar({avatar}) {
     api.editAvatar({avatar})
       .then((userData) => {
-        setCurrentUser({...currentUser, ...userData})
+        setCurrentUser(userData);
       })
       .catch(err => `Не удалось обновить аватар, ошибка: ${err}`)
   }
@@ -110,11 +110,12 @@ function App() {
   }
   function handleSubmitRegistration(data) {
     auth.registration(data)
-      .then(({ email }) => {
-        setCurrentUser({ ...currentUser, email })
-        history.push('/sign-in')
-        setIsTooltipPopupOpen(true)
-        setMessageTooltip({ message: "Вы успешно зарегистрировались!", img: successfulRegist })
+      .then((res) => {
+        if(res) {
+          history.push('/sign-in')
+          setIsTooltipPopupOpen(true)
+          setMessageTooltip({ message: "Вы успешно зарегистрировались!", img: successfulRegist })
+        }        
       })
       .catch((err) => {
         console.log(err);
@@ -125,10 +126,10 @@ function App() {
   }
   function handleSubmitAuthorization(data) {
     auth.authorization(data)
-      .then(({ token, email }) => {
-        localStorage.setItem('jwt', token)
-        setLoggedIn(true)
-        setCurrentUser({...currentUser, email })
+      .then((res) => {
+        localStorage.setItem('jwt', res.token);
+        setLoggedIn(true);
+        setEmail(res.email);
         history.push('/')
       })
       .catch((err) => {
@@ -138,18 +139,6 @@ function App() {
       })
   }
 
-  function checkTocken() {
-    const jwt = localStorage.getItem('jwt');
-    if (jwt) {
-      setLoggedIn(true);
-      auth.getUser(jwt)
-        .then(({ data: { email } }) => {
-          setCurrentUser({ ...currentUser, email })
-        })
-        .catch((err)=> console.log(err))
-    }
-  }
-
   function handleLogout() {
     localStorage.removeItem('jwt');
     setLoggedIn(false);
@@ -157,24 +146,39 @@ function App() {
   }
 
   React.useEffect(() => {
-    checkTocken();
     if (loggedIn) {
       api.getInitialData()
         .then(([userData, cardsList]) => {
-          setCurrentUser({...currentUser, ...userData});
-          console.log(currentUser)
+          setCurrentUser(userData);
           setCards(cardsList);
        })
       .catch(err => console.log(err));
     }
   }, [loggedIn]);
+
+  React.useEffect(() => {
+    const jwt = localStorage.getItem('jwt');
+    if(jwt) {
+      auth.getUser(jwt)
+        .then((res) => {
+          if(res) {
+            setEmail(res.data.email);
+            setLoggedIn(true);
+            history.push('/');
+          } else {
+            localStorage.removeItem(jwt);
+          }
+        })
+        .catch(err => console.log(err))
+    }
+  }, [history])
   
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
         <div className="page__container">
-          <Header onLogout={handleLogout}/>
+          <Header email={email} onLogout={handleLogout}/>
           <Switch>
             <ProtectedRoute exact path="/"
               loggedIn={loggedIn}
@@ -187,17 +191,11 @@ function App() {
               onCardLike={handleCardLike}
               cards={cards}
             />
-          
             <Route path="/sign-up">
-              {loggedIn ? <Redirect to='/' />
-              : <Register onSubmit={handleSubmitRegistration}/>}
+              <Register onSubmit={handleSubmitRegistration} />
             </Route> 
             <Route path="/sign-in">
-              {loggedIn ? <Redirect to='/' />
-              : <Login onSubmit={handleSubmitAuthorization} />}
-            </Route>
-            <Route path="*">
-              <Redirect to='/sign-in' />
+              <Login onSubmit={handleSubmitAuthorization} />
             </Route>
           </Switch>
         </div>

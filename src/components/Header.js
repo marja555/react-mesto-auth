@@ -1,11 +1,9 @@
 import React from 'react';
 import logoPath from '../images/logo.svg';
 import { Route, Link } from 'react-router-dom';
-import { CurrentUserContext } from '../contexts/CurrentUserContext';
-import { useContext } from 'react';
+
 
 function Header(props) {
- const currentUser = useContext(CurrentUserContext);
 
   return (
     <header className="header">
@@ -16,10 +14,11 @@ function Header(props) {
       <Route path="/sign-in">
         <Link to="/sign-up" className="auth__route-link">Регистрация</Link>
       </Route>
-      
-      <Route path='/'>
-      <p className="header__email">{currentUser.email}</p>
-        <Link to='/sign-in' className="auth__route-link" onClick={props.onLogout}>Выйти</Link>
+      <Route exact path='/'>
+        <div className="header__container">
+          <p className="header__email">{props.email}</p>
+          <Link to='/sign-in' className="auth__route-link" onClick={props.onLogout}>Выйти</Link>
+        </div>
       </Route>
     </header>
   );
