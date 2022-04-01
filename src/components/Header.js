@@ -6,7 +6,6 @@ import { useContext } from 'react';
 
 function Header(props) {
  const currentUser = useContext(CurrentUserContext);
-  
 
   return (
     <header className="header">
@@ -17,8 +16,9 @@ function Header(props) {
       <Route path="/sign-in">
         <Link to="/sign-up" className="auth__route-link">Регистрация</Link>
       </Route>
-      <p className="header__email">{currentUser?.email}</p>
+      
       <Route path='/'>
+      <p className="header__email">{currentUser.email}</p>
         <Link to='/sign-in' className="auth__route-link" onClick={props.onLogout}>Выйти</Link>
       </Route>
     </header>

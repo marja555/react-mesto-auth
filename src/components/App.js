@@ -27,7 +27,7 @@ function App() {
 
   const [selectedCard, setSelectedCard] = useState(null);
   const [cardToDelete, setCardToDelete] = useState()
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState({});
   const [loggedIn, setLoggedIn] = useState(false);
   const [messageTooltip, setMessageTooltip] = React.useState({});
 
@@ -66,7 +66,7 @@ function App() {
   function handleUpdateUser(currentUser) {
     api.setUserInfo({name: currentUser.name, job: currentUser.about})
       .then((userData) => {
-        setCurrentUser(userData);
+        setCurrentUser({...currentUser, ...userData});
       })
       .catch(err => `Не удалось обновить данные пользователя, ошибка: ${err}`)
   }
@@ -74,7 +74,7 @@ function App() {
   function handleUpdateAvatar({avatar}) {
     api.editAvatar({avatar})
       .then((userData) => {
-        setCurrentUser(userData)
+        setCurrentUser({...currentUser, ...userData})
       })
       .catch(err => `Не удалось обновить аватар, ошибка: ${err}`)
   }
@@ -138,18 +138,17 @@ function App() {
       })
   }
 
-  // function checkTocken() {
-  //   const jwt = localStorage.getItem('jwt');
-  //   if (jwt) {
-  //     setLoggedIn(true);
-  //     auth.getUser(jwt)
-  //       .then(({ data: { email } }) => {
-  //         setCurrentUser({ ...currentUser, email })
-  //         console.log(currentUser)
-  //       })
-  //       .catch((err)=> console.log(err))
-  //   }
-  // }
+  function checkTocken() {
+    const jwt = localStorage.getItem('jwt');
+    if (jwt) {
+      setLoggedIn(true);
+      auth.getUser(jwt)
+        .then(({ data: { email } }) => {
+          setCurrentUser({ ...currentUser, email })
+        })
+        .catch((err)=> console.log(err))
+    }
+  }
 
   function handleLogout() {
     localStorage.removeItem('jwt');
@@ -158,7 +157,7 @@ function App() {
   }
 
   React.useEffect(() => {
-    // checkTocken();
+    checkTocken();
     if (loggedIn) {
       api.getInitialData()
         .then(([userData, cardsList]) => {
@@ -169,7 +168,6 @@ function App() {
       .catch(err => console.log(err));
     }
   }, [loggedIn]);
-
   
 
   return (
@@ -197,7 +195,10 @@ function App() {
             <Route path="/sign-in">
               {loggedIn ? <Redirect to='/' />
               : <Login onSubmit={handleSubmitAuthorization} />}
-            </Route> 
+            </Route>
+            <Route path="*">
+              <Redirect to='/sign-in' />
+            </Route>
           </Switch>
         </div>
         <EditProfilePopup 
